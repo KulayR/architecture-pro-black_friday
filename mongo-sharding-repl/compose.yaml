@@ -1,0 +1,131 @@
+name: mongo-sharding-repl
+
+services:
+  # --- Config Servers (2 сервера конфигурации) ---
+  configsvr1:
+    container_name: configsvr1
+    image: dh-mirror.gitverse.ru/mongo:latest
+    command: mongod --configsvr --replSet configRS --port 27017 --bind_ip_all
+    volumes:
+      - configsvr1_data:/data/db
+    networks:
+      - mongo_net
+
+  configsvr2:
+    container_name: configsvr2
+    image: dh-mirror.gitverse.ru/mongo:latest
+    command: mongod --configsvr --replSet configRS --port 27017 --bind_ip_all
+    volumes:
+      - configsvr2_data:/data/db
+    networks:
+      - mongo_net
+
+  # --- Shard 1 Replica Set (3 узла) ---
+  shard1-1:
+    container_name: shard1-1
+    image: dh-mirror.gitverse.ru/mongo:latest
+    command: mongod --shardsvr --replSet shard1RS --port 27017 --bind_ip_all
+    volumes:
+      - shard1-1_data:/data/db
+    networks:
+      - mongo_net
+
+  shard1-2:
+    container_name: shard1-2
+    image: dh-mirror.gitverse.ru/mongo:latest
+    command: mongod --shardsvr --replSet shard1RS --port 27017 --bind_ip_all
+    volumes:
+      - shard1-2_data:/data/db
+    networks:
+      - mongo_net
+
+  shard1-3:
+    container_name: shard1-3
+    image: dh-mirror.gitverse.ru/mongo:latest
+    command: mongod --shardsvr --replSet shard1RS --port 27017 --bind_ip_all
+    volumes:
+      - shard1-3_data:/data/db
+    networks:
+      - mongo_net
+
+  # --- Shard 2 Replica Set (3 узла) ---
+  shard2-1:
+    container_name: shard2-1
+    image: dh-mirror.gitverse.ru/mongo:latest
+    command: mongod --shardsvr --replSet shard2RS --port 27017 --bind_ip_all
+    volumes:
+      - shard2-1_data:/data/db
+    networks:
+      - mongo_net
+
+  shard2-2:
+    container_name: shard2-2
+    image: dh-mirror.gitverse.ru/mongo:latest
+    command: mongod --shardsvr --replSet shard2RS --port 27017 --bind_ip_all
+    volumes:
+      - shard2-2_data:/data/db
+    networks:
+      - mongo_net
+
+  shard2-3:
+    container_name: shard2-3
+    image: dh-mirror.gitverse.ru/mongo:latest
+    command: mongod --shardsvr --replSet shard2RS --port 27017 --bind_ip_all
+    volumes:
+      - shard2-3_data:/data/db
+    networks:
+      - mongo_net
+
+  # --- Routers (2 роутера mongos) ---
+  mongos1:
+    container_name: mongos1
+    image: dh-mirror.gitverse.ru/mongo:latest
+    command: mongos --configdb configRS/configsvr1:27017,configsvr2:27017 --port 27017 --bind_ip_all
+    ports:
+      - 27017:27017
+    depends_on:
+      - configsvr1
+      - configsvr2
+    networks:
+      - mongo_net
+
+  mongos2:
+    container_name: mongos2
+    image: dh-mirror.gitverse.ru/mongo:latest
+    command: mongos --configdb configRS/configsvr1:27017,configsvr2:27017 --port 27017 --bind_ip_all
+    depends_on:
+      - configsvr1
+      - configsvr2
+    networks:
+      - mongo_net
+
+  # --- Python API ---
+  pymongo_api:
+    container_name: pymongo_api
+    build:
+      context: api_app
+      dockerfile: Dockerfile
+    depends_on:
+      - mongos1
+      - mongos2
+    ports:
+      - 8080:8080
+    environment:
+      MONGODB_URL: "mongodb://mongos1:27017,mongos2:27017"
+      MONGODB_DATABASE_NAME: "somedb"
+    networks:
+      - mongo_net
+
+networks:
+  mongo_net:
+    driver: bridge
+
+volumes:
+  configsvr1_data:
+  configsvr2_data:
+  shard1-1_data:
+  shard1-2_data:
+  shard1-3_data:
+  shard2-1_data:
+  shard2-2_data:
+  shard2-3_data:

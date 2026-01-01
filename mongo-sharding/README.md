@@ -2,8 +2,6 @@
 
 ### 1. Запуск контейнеров
 
-Все действия выполнять в директории `sharding-repl-cache`
-
 ```bash
 docker compose up -d --build
 ```
@@ -45,21 +43,14 @@ docker compose restart pymongo_api
 
 Откройте в браузере:
 
-**Статус кластера:**
-[http://localhost:8080/](http://localhost:8080/)
-*   Ищите поле `"cache_enabled": true`.
-Если оно true, значит app.py увидел переменную окружения и успешно соединился с Redis.
+1.  **Статус кластера:**
+    [http://localhost:8080/](http://localhost:8080/)
+    *   Ищите поле `"mongo_topology_type": "Sharded"`.
+    *   В поле `"shards"` должно быть 2 записи.
 
-**Количество документов:**
-[http://localhost:8080/helloDoc/count](http://localhost:8080/helloDoc/count)
-*   Должно вернуть `items_count: 1000`.
-
-**Проверка кеширования:**
-Откройте список пользователей [http://localhost:8080/helloDoc/users](http://localhost:8080/helloDoc/users).
-Первый запрос: Займет около 1 секунды (в коде стоит time.sleep(1)).
-Второй запрос: Пройдет мгновенно (данные отдадутся из Redis).
-
----
+2.  **Количество документов:**
+    [http://localhost:8080/helloDoc/count](http://localhost:8080/helloDoc/count)
+    *   Должно вернуть `items_count: 1000`.
 
 ### Ручная проверка (в терминале)
 
@@ -67,10 +58,10 @@ docker compose restart pymongo_api
 
 ```bash
 # Смотрим данные на Шарде 1
-docker compose exec shard1-1 mongosh somedb --eval 'db.helloDoc.countDocuments()'
+docker compose exec shard1 mongosh somedb --eval 'db.helloDoc.countDocuments()'
 
 # Смотрим данные на Шарде 2
-docker compose exec shard2-1 mongosh somedb --eval 'db.helloDoc.countDocuments()'
+docker compose exec shard2 mongosh somedb --eval 'db.helloDoc.countDocuments()'
 ```
 Сумма этих чисел должна давать 1000, но на каждом отдельном шарде будет только часть данных (например, ~500).
 
